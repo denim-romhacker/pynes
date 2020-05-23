@@ -8,7 +8,11 @@ class Console:
         romPath = sys.argv[1]
 
         self.cartridge = romLoader(romPath)
-        self.cartridge.load()
+
+        try:
+            self.cartridge.load()
+        except:
+            print("Couldn't load NES cartridge")
 
         CPU = cpu(self.cartridge)
         CPU.run()

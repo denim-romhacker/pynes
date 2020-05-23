@@ -7,15 +7,15 @@ class romLoader:
     def openFile(self, romPath):
         try:
             rom = open(romPath, 'rb')
-            print romPath, " ......LOADED"
+            print ("{0} ......LOADED".format(romPath))
         except ValueError:
-            print "Invalid Path."
+            print ("Invalid Path.")
 
         return rom
 
     def load(self):
         # Pula os 4 primeiros bytes
-        if(self.rom.read(3) != 'NES'):
+        if(self.rom.read(3).decode('ascii') != 'NES'):
             exit()
         self.rom.seek(4)
 
@@ -41,19 +41,16 @@ class romLoader:
         self.mirror = self.flags6 & 1
 
         # Le o PRG ROM e o CHR ROM e os mapeia em arrays de inteiros
-        self.prgRomData = self.rom.read(0x4000 * self.prgRomCount)
-        self.prgRomData = map(ord, self.prgRomData)
-
-        self.chrRomData = self.rom.read(0x2000 * self.chrRomCount)
-        self.chrRomData = map(ord, self.chrRomData)
+        self.prgRomData = list(self.rom.read(0x4000 * self.prgRomCount))
+        self.chrRomData = list(self.rom.read(0x2000 * self.chrRomCount))
 
     def printHeader(self):
 
-        print "Mapper Number: ", self.mapperNumber
-        print "PRG Count: ", self.prgRomCount
-        print "CHR Count: ", self.chrRomCount
-        print "Flags 6: ", self.flags6
-        print "Flags 7: ", self.flags7
-        print "Size of PRG Data: ", len(self.prgRomData)
-        print "Size of CHR Data: ", len(self.chrRomData)
-        print "\n"
+        print ("Mapper Number: {0}".format(self.mapperNumber))
+        print ("PRG Count: : {0}".format(self.prgRomCount))
+        print ("CHR Count: : {0}".format(self.chrRomCount))
+        print ("Flags 6: {0}".format( self.flags6))
+        print ("Flags 7: {0}".format( self.flags7))
+        print ("Size of PRG Data: {0}".format(len(self.prgRomData)))
+        print ("Size of CHR Data: {0}".format(len(self.chrRomData)))
+        print ("\n")

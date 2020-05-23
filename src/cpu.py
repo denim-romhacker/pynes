@@ -269,14 +269,14 @@ class cpu:
 
     def initMemory(self):
         if self.cart.mapperNumber != 0:
-            print "Mapper not available yet"
+            print ("Mapper not available yet")
             exit(1)
 
-        for i in xrange(len(self.cart.prgRomData)):
+        for i in range(len(self.cart.prgRomData)):
             self.memory[i + 0x8000] = self.cart.prgRomData[i]
             if self.cart.prgRomCount == 1:
                 self.memory[i + 0xC000] = self.cart.prgRomData[i]
-        for i in xrange(0x20):
+        for i in range(0x20):
             self.memory[i + 0x4000] = 0xFF
 
     def doNMI(self):

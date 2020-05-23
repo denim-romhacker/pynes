@@ -108,15 +108,18 @@ class ppu:
                              (0x00, 0x00, 0x00)]
 
     def initMemory(self):
-        for i in xrange(len(self.cart.chrRomData)):
+        for i in range(len(self.cart.chrRomData)):
             self.VRAM[i] = self.cart.chrRomData[i]
         self.matrix = [[0]*240 for i in range(256)]
 
         pygame.init()
 
-        self.screen = pygame.display.set_mode((256, 240))
-        self.screen.fill((1, 1, 1))
-        pygame.display.flip()
+        try:
+            self.screen = pygame.display.set_mode((256, 240))
+            self.screen.fill((1, 1, 1))
+            pygame.display.flip()
+        except:
+            print ("Video Error")
 
 
     def setMirroring(self, mirroring):
@@ -265,7 +268,7 @@ class ppu:
     def writeSprRamDMA(self, value):
         address = value * 0x100
 
-        for i in xrange(256):
+        for i in range(256):
             self.SPRRAM[i] = self.cpu.memory[address]
             address += 1
 
@@ -289,25 +292,25 @@ class ppu:
             self.drawSprites()
 
         if self.cpu.scanline == 239:
-            for i in xrange(256):
-                for j in xrange(240):
+            for i in range(256):
+                for j in range(240):
                     pygame.Surface.set_at(self.screen, (i, j), self.matrix[i][j])
             pygame.display.flip()
 
     def drawBackground(self):
-        tileY = self.cpu.scanline / 8
-        Y = self.cpu.scanline % 8
+        tileY = int(self.cpu.scanline / 8)
+        Y = int(self.cpu.scanline % 8)
 
         maxTiles = 32
 
         if (self.ppuScrollX % 8) != 0:
             maxTiles = 33
 
-        currentTile = self.ppuScrollX / 8
-        v = self.nameTableAddress + currentTile
+        currentTile = int(self.ppuScrollX / 8)
+        v = int(self.nameTableAddress + currentTile)
         pixel = 0
 
-        for i in xrange(0 if self.clippingBackground else 1, maxTiles):
+        for i in range(0 if self.clippingBackground else 1, maxTiles):
 
             fromByte = 0
             toByte = 8
@@ -318,14 +321,14 @@ class ppu:
                 if i == (maxTiles - 1):
                     fromByte = 8 - (self.ppuScrollX % 8)
 
-            ptrAddress = self.VRAM[v + (tileY*0x20)]
+            ptrAddress = self.VRAM[v + int(tileY*0x20)]
             pattern1 = self.VRAM[self.backgroundPatternTable + (ptrAddress*16) + Y]
             pattern2 = self.VRAM[self.backgroundPatternTable + (ptrAddress*16) + Y + 8]
             # blockX e blockY sao as coordenadas em relacao ao block
             blockX = i % 4
             blockY = tileY % 4
-            block = (i / 4) + ((tileY / 4) * 8)
-            addressByte = (v & ~0x001F) + 0x03C0 + block
+            block = int(i / 4) + (int(tileY / 4) * 8)
+            addressByte = int((v & ~0x001F) + 0x03C0 + block)
             byteAttributeTable = self.VRAM[addressByte]
             colorIndex = 0x3F00
 
@@ -338,7 +341,7 @@ class ppu:
             else:
                 colorIndex |= ((byteAttributeTable & 0b11000000) >> 6) << 2
 
-            for j in xrange(fromByte, toByte):
+            for j in range(fromByte, toByte):
                 bit1 = ((1 << j) & pattern1) >> j
                 bit2 = ((1 << j) & pattern2) >> j
                 colorIndexFinal = colorIndex
@@ -367,19 +370,19 @@ class ppu:
         secondaryOAM = [0xFF] * 32
         indexSecondaryOAM = 0
 
-        for currentSprite in xrange(0, 256, 4):
+        for currentSprite in range(0, 256, 4):
             spriteY = self.SPRRAM[currentSprite]
 
             if numberSpritesPerScanline == 8:
                 break
 
             if self.cpu.scanline >= spriteY and self.cpu.scanline < spriteY + self.spriteSize:
-                for i in xrange(4):
+                for i in range(4):
                     secondaryOAM[indexSecondaryOAM + i] = self.SPRRAM[currentSprite + i]
                 indexSecondaryOAM += 4
                 numberSpritesPerScanline += 1
 
-        for currentSprite in xrange(28, -1, -4):
+        for currentSprite in range(28, -1, -4):
             spriteX = secondaryOAM[currentSprite + 3]
             spriteY = secondaryOAM[currentSprite]
 
@@ -398,7 +401,7 @@ class ppu:
 
             colorIndex |= ((secondaryOAM[currentSprite +2] & 0x3) << 2)
 
-            for j in xrange(8):
+            for j in range(8):
                 if flipHorizontal:
                     colorIndexFinal = (pattern1 >> j) & 0x1
                     colorIndexFinal |= ((pattern2 >> j) & 0x1 ) << 1
