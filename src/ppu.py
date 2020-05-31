@@ -51,14 +51,19 @@ class ppu:
                 self.vramSURF[i].append([])
                 for k in xrange(128):
                     self.vramSURF[i][j].append(pygame.Surface((8, 8)))
+                    
+        #controle das cores           
+        self.tileColor = []
+        for j in xrange(128):
+            self.tileColor.append([])
+            for k in xrange(128):
+                self.tileColor[j].append([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])     
                 
-        #surface para sprites
+        #surface para sprte
         self.spritesSURF = []
         for k in xrange(64):
             self.spritesSURF.append(pygame.Surface((8, 8)))
-           
-        #oam auxiliar
-        #byte0: prioridade, byte 1: x, byte 2:y
+            
         self.spriteOAMAux = []
         for k in xrange(64):
             self.spriteOAMAux.append([])
@@ -321,20 +326,23 @@ class ppu:
     
         colorKey = self.colorPallete[self.VRAM[0x3f00]]
         self.screen.fill(colorKey)
-        
-        #sprites de menor prioridade
-        for i in xrange(self.spriteCount):
-            if(self.spriteOAMAux[i][0] == 0x20):
-                self.screen.blit(self.spritesSURF[i], (self.spriteOAMAux[i][1],self.spriteOAMAux[i][2]))
+
+        if self.showSprites:
+            #sprites de menor prioridade
+            for i in xrange(self.spriteCount):
+                if(self.spriteOAMAux[i][0] == 0x20):
+                    self.screen.blit(self.spritesSURF[i], (self.spriteOAMAux[i][1],self.spriteOAMAux[i][2]))
         
         #bg
-        self.drawBGNew()
+        if self.showBackground:
+            self.drawBGNew()
             
         #sprite de maior prioridade
-        for i in xrange(self.spriteCount):
-            if(self.spriteOAMAux[i][0] == 0x00):
-                self.spritesSURF[i].set_colorkey(colorKey)
-                self.screen.blit(self.spritesSURF[i], (self.spriteOAMAux[i][1],self.spriteOAMAux[i][2]))
+        if self.showSprites:
+            for i in xrange(self.spriteCount):
+                if(self.spriteOAMAux[i][0] == 0x00):
+                    self.spritesSURF[i].set_colorkey(colorKey)
+                    self.screen.blit(self.spritesSURF[i], (self.spriteOAMAux[i][1],self.spriteOAMAux[i][2]))
         
         pygame.display.update()
         
@@ -342,11 +350,12 @@ class ppu:
 
         colorKey = self.colorPallete[self.VRAM[0x3f00]]
         
+        if self.nameTableAddress == 0:
+            return
+            
         for scan in xrange(0, 240, 8):
             
             tileY = scan / 8
-            Y = scan % 8
-           
             maxTiles = 32
 
             if (self.ppuScrollX % 8) != 0:
@@ -364,8 +373,8 @@ class ppu:
                 byteAttributeTable = self.VRAM[addressByte]
                 tm = self.VRAM[v]
 
-                xtm = (tm % 16) * 8
-                ytm = (tm / 16) * 8
+                xtm = (tm % 16)
+                ytm = (tm / 16)
                 
                 if blockX < 2 and blockY < 2:
                     colorIndex = (byteAttributeTable & 0b11)
@@ -375,7 +384,7 @@ class ppu:
                     colorIndex = ((byteAttributeTable & 0b110000) >> 4)
                 else:
                     colorIndex = ((byteAttributeTable & 0b11000000) >> 6)
-                
+                   
                # if colorIndex != 0:
                 #    print(i, v, colorIndex, addressByte)
                 self.vramSURF[colorIndex][xtm][ytm].set_colorkey(colorKey)
@@ -394,8 +403,10 @@ class ppu:
         if (line % 8) != 0:
             return
 
+        if self.nameTableAddress == 0:
+            return
+            
         v1 = [1, 2, 4, 8, 16, 32, 64, 128]
-        c2 = self.VRAM[0x3f00 : 0x3f10] == self.VRAMTiles[0x3f00 : 0x3f10]
         
         for j in xrange(32):
 
@@ -403,15 +414,16 @@ class ppu:
             tilemap = self.VRAM[v]
             ptrAddress = self.backgroundPatternTable + (tilemap << 4)
 
-            x = (tilemap % 16) * 8
-            y = (tilemap / 16) * 8
+            x = (tilemap % 16)
+            y = (tilemap / 16)
             
             c1 = (self.VRAMTiles[ptrAddress : ptrAddress + 16]) == (self.VRAM[ptrAddress : ptrAddress + 16])
+            c2 = (self.tileColor[x][y] == self.VRAM[0x3f00 : 0x3f10])
             
-            if c1 ^ c2:
+            if c1 ^ c2 or (not c1 and not c2):
             
                 self.VRAMTiles[ptrAddress : ptrAddress + 16] = list(self.VRAM[ptrAddress : ptrAddress + 16])
-                
+                self.tileColor[x][y] = list(self.VRAM[0x3f00 : 0x3f10])
                 matrix = [pygame.PixelArray(self.vramSURF[0][x][y]),  pygame.PixelArray(self.vramSURF[1][x][y]),  pygame.PixelArray(self.vramSURF[2][x][y]),  pygame.PixelArray(self.vramSURF[3][x][y])]
                 colorIndex = [0x3f00, 0x3F04, 0x3f08, 0x3f0c]
                 
@@ -432,10 +444,7 @@ class ppu:
                        
                             matrix[t][7 - n][m] = color
 
-                del matrix
-             
-        if line == 232:
-            self.VRAMTiles[0x3f00 : 0x3f10] = list(self.VRAM[0x3f00 : 0x3f10])                         
+                del matrix                    
 
     def drawSpritesNew(self):
     
@@ -500,6 +509,10 @@ class ppu:
 
                 del matrix                 
                 self.spriteCount += 1
+                
+                numberSpritesPerScanline += 1
+                if numberSpritesPerScanline == 8:
+                    break
 
     def enterVBlank(self):
         if self.NMI:
